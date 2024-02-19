@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import project.lms.dto.ExamDto;
 import project.lms.dto.ExamHistoryDto;
 import project.lms.dto.ExamQuestionDto;
+import project.lms.dto.ExamResponseDto;
 import project.lms.dto.ResponseDto;
 import project.lms.enumstatus.ResultCode;
 import project.lms.exception.InvalidRequestException;
@@ -42,22 +43,23 @@ public class ExamServiceImpl implements ExamService {
 	}
 	
 	// 시험 전체 조회 - 각 course의 선생님 권한
-	@Override
-	public ResponseDto<List<Exam>> getAllExams() {
-		List<Exam> exams = examRepository.findAll();
-		
-		if(exams == null || exams.isEmpty()) {
-			return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					null,
-					"시험이 존재하지 않습니다.");
-		} else {
-			return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					exams,
-					"시험 목록을 조회하였습니다.");
-		}
-	}
+    @Override
+    public ResponseDto<List<ExamResponseDto>> getAllExams() {
+        List<Exam> exams = examRepository.findAll();
+        
+        if(exams == null || exams.isEmpty()) {
+            return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    null,
+                    "시험이 존재하지 않습니다.");
+        } else {
+            List<ExamResponseDto> examDtos = exams.stream().map(ExamResponseDto::from).collect(Collectors.toList());
+            return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    examDtos,
+                    "시험 목록을 조회하였습니다.");
+        }
+    }
 	
 	// 시험 문제 조회
 	@Override
@@ -85,72 +87,73 @@ public class ExamServiceImpl implements ExamService {
 
 
 	// 컨텐츠에 따라 시험 목록 
-	@Override
-	public ResponseDto<List<Exam>> getExamByContent(Long contentId) {
-		List<Exam> exams = examRepository.findByContentContentId(contentId);
-			if (exams == null || exams.isEmpty()) {
-				return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					null,
-					"해당 컨텐츠에 대한 시험이 없습니다.");
-			} else {
-				return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					exams,
-					"컨텐츠별 시험 목록을 조회하였습니다.");
-			}
-	}
+    @Override
+    public ResponseDto<List<ExamResponseDto>> getExamByContent(Long contentId) {
+        List<Exam> exams = examRepository.findByContentContentId(contentId);
+            if (exams == null || exams.isEmpty()) {
+                return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    null,
+                    "해당 컨텐츠에 대한 시험이 없습니다.");
+            } else {
+                List<ExamResponseDto> examDtos = exams.stream().map(ExamResponseDto::from).collect(Collectors.toList());
+                return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    examDtos,
+                    "컨텐츠별 시험 목록을 조회하였습니다.");
+            }
+    }
 	
-	// 컨텐츠에 따라 시험 생성 
-	@Transactional
-	@Override
-	public ResponseDto<Exam> createExam(ExamDto examDto) {
-		try {
-			Content content = contentRepository.findById(examDto.getContentId())
-		            .orElseThrow(() -> new InvalidRequestException("Invalid Request", "컨텐츠가 존재하지 않거나 찾을 수 없습니다."));
-			Exam exam = new Exam();
-			exam.setContent(content);
-			exam.setExamIsActive(examDto.getExamIsActive());
-			
-			examRepository.save(exam);
-			
-			return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					exam,
-					"시험을 등록 하였습니다.");
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new ResponseDto<>(
-					ResultCode.ERROR.name(),
-					null,
-					"시험 등록에 실패하였습니다.");
-		}
-	}
+    // 컨텐츠에 따라 시험 생성 
+    @Transactional
+    @Override
+    public ResponseDto<ExamResponseDto> createExam(ExamDto examDto) {
+        try {
+            Content content = contentRepository.findById(examDto.getContentId())
+                    .orElseThrow(() -> new InvalidRequestException("Invalid Request", "컨텐츠가 존재하지 않거나 찾을 수 없습니다."));
+            Exam exam = new Exam();
+            exam.setContent(content);
+            exam.setExamIsActive(examDto.getExamIsActive());
+            
+            examRepository.save(exam);
+            
+            return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    ExamResponseDto.from(exam),
+                    "시험을 등록 하였습니다.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseDto<>(
+                    ResultCode.ERROR.name(),
+                    null,
+                    "시험 등록에 실패하였습니다.");
+        }
+    }
 	
-	// 시험 수정
-	@Transactional
-	@Override
-	public ResponseDto<Exam> updateExam(Long examId, ExamDto examDto) {
-		try {
-			Exam exam = examRepository.findById(examId)
-					.orElseThrow(() -> new InvalidRequestException("Invalid Request", "해당 시험이 존재하지 않거나 찾을 수 없습니다."));
-		
-			exam.setExamIsActive(examDto.getExamIsActive());
-			
-			examRepository.save(exam);
-			
-			return new ResponseDto<>(
-					ResultCode.SUCCESS.name(),
-					exam,
-					"시험을 수정하였습니다.");
-		} catch (Exception e) {
-			e.printStackTrace();
-	        return new ResponseDto<>(
-	                ResultCode.ERROR.name(),
-	                null,
-	                "시험 수정에 실패하였습니다.");
-		}
-	}
+    // 시험 수정
+    @Transactional
+    @Override
+    public ResponseDto<ExamResponseDto> updateExam(Long examId, ExamDto examDto) {
+        try {
+            Exam exam = examRepository.findById(examId)
+                    .orElseThrow(() -> new InvalidRequestException("Invalid Request", "해당 시험이 존재하지 않거나 찾을 수 없습니다."));
+        
+            exam.setExamIsActive(examDto.getExamIsActive());
+            
+            examRepository.save(exam);
+            
+            return new ResponseDto<>(
+                    ResultCode.SUCCESS.name(),
+                    ExamResponseDto.from(exam),
+                    "시험을 수정하였습니다.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseDto<>(
+                    ResultCode.ERROR.name(),
+                    null,
+                    "시험 수정에 실패하였습니다.");
+        }
+    }
 	
 	// 시험 삭제
 	@Transactional
